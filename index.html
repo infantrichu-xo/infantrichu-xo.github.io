@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNIT-01 // INFANT_RICHU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Playfair+Display:ital,wght@1,600;1,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#150a10;
+    --bg-1:#1f0f18;
+    --line:rgba(230,150,180,0.25);
+    --line-soft:rgba(230,150,180,0.12);
+    --pink:#f486a1;
+    --pink-bright:#ff8fb3;
+    --cream:#fce3df;
+    --gold:#d9b475;
+    --mint:#bfe3d0;
+    --text:#f3e4ea;
+    --text-dim:#a98a97;
+    --text-faint:#6e525c;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    height:100%;
+    background:var(--bg-0);
+    color:var(--text);
+    font-family:'Space Mono', monospace;
+  }
+  body{
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 40%, rgba(244,134,161,0.10), transparent 65%),
+      linear-gradient(180deg, var(--bg-1), var(--bg-0) 60%);
+  }
+  .crosshair{
+    position:fixed; inset:0; pointer-events:none; z-index:2;
+  }
+  .crosshair .v, .crosshair .h{
+    position:absolute; background:var(--line-soft);
+  }
+  .crosshair .v{ left:50%; top:0; width:1px; height:100%; }
+  .crosshair .h{ top:50%; left:0; height:1px; width:100%; }
+  body::after{
+    content:"";
+    position:fixed; inset:0; z-index:3; pointer-events:none;
+    opacity:0.05; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+  a{ color:inherit; text-decoration:none; }
+  * { cursor:none !important; }
+  @media (hover:none), (max-width:820px){ * { cursor:auto !important; } }
+  #cursor{
+    position:fixed; top:0; left:0; z-index:100; pointer-events:none;
+    width:14px; height:14px;
+    border:1px solid var(--pink);
+    transform:translate(-50%,-50%);
+    transition:width 0.15s ease, height 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  #cursor::before{
+    content:"";
+    position:absolute; top:50%; left:50%;
+    width:2px; height:2px;
+    background:var(--pink);
+    transform:translate(-50%,-50%);
+  }
+  #cursor.hover{
+    width:26px; height:26px;
+    border-color:var(--pink-bright);
+    background:rgba(244,134,161,0.08);
+  }
+  /* ---------- BOOT SCREEN ---------- */
+  #boot{
+    position:fixed; inset:0; z-index:50;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(21,10,16,0.4);
+    backdrop-filter:blur(1px);
+    transition:opacity 0.6s ease;
+  }
+  .boot-card{
+    width:min(90vw, 420px);
+    border:1px solid var(--line);
+    padding:28px 26px 24px;
+    text-align:center;
+    background:rgba(21,10,16,0.55);
+    box-shadow:0 0 40px rgba(244,134,161,0.08);
+  }
+  .boot-tag{
+    display:inline-block;
+    background:var(--pink-bright);
+    color:#2a0e1c;
+    font-size:10px;
+    letter-spacing:2px;
+    font-weight:700;
+    padding:4px 10px;
+    margin-bottom:16px;
+  }
+  .boot-title{
+    font-family:'Playfair Display', serif; font-style:italic;
+    font-size:44px;
+    color:var(--pink);
+    letter-spacing:1px;
+    margin-bottom:14px;
+    text-shadow:0 0 22px rgba(244,134,161,0.35);
+  }
+  .boot-tabs{
+    display:flex; gap:8px; justify-content:center; margin-bottom:14px;
+  }
+  .boot-tabs span{
+    font-size:9px; letter-spacing:1px; color:var(--text-dim);
+    border:1px solid var(--line-soft); padding:4px 8px;
+  }
+  .boot-sub{
+    font-size:10px; letter-spacing:1px; color:var(--text-faint); margin-bottom:20px;
+  }
+  #boot-btn{
+    width:100%; padding:13px; background:transparent;
+    border:1px solid var(--pink); color:var(--pink);
+    font-family:'Space Mono', monospace; letter-spacing:4px; font-size:12px;
+    cursor:pointer; transition:all 0.25s ease;
+  }
+  #boot-btn:hover{ background:var(--pink); color:#2a0e1c; box-shadow:0 0 20px rgba(244,134,161,0.5); }
+  /* ---------- DASHBOARD ---------- */
+  #dash{
+    position:relative; z-index:10;
+    min-height:100vh; display:flex; flex-direction:column;
+    opacity:0; transition:opacity 0.8s ease;
+    will-change: transform;
+  }
+  #dash.show{ opacity:1; }
+  header{
+    display:flex; align-items:center; gap:0; flex-wrap:wrap;
+    border-bottom:1px solid var(--line);
+    font-size:11px; letter-spacing:1px;
+    flex:none;
+  }
+  .hd-title{
+    padding:14px 18px;
+    font-family:'Playfair Display', serif; font-style:italic;
+    font-size:22px;
+    color:var(--pink);
+    letter-spacing:1px;
+    white-space:nowrap;
+  }
+  .hd-box{
+    padding:8px 16px;
+    border-left:1px solid var(--line);
+    display:flex; flex-direction:column; gap:2px;
+  }
+  .hd-box .k{ color:var(--text-faint); font-size:9px; }
+  .hd-box .v{ color:var(--text); font-size:11px; }
+  .hd-clock{
+    margin-left:auto;
+    padding:14px 18px;
+    color:var(--gold);
+    font-size:13px;
+    border-left:1px solid var(--line);
+  }
+  main{
+    flex:1; display:grid;
+    grid-template-columns:230px 1fr 200px;
+  }
+  aside{ padding:20px; border-right:1px solid var(--line); }
+  aside.right{ border-right:none; border-left:1px solid var(--line); }
+  .lbl{
+    font-size:9px; letter-spacing:2px; color:var(--text-faint); margin-bottom:6px;
+  }
+  .pilot-name{
+    font-size:20px; letter-spacing:1px; color:var(--pink); margin-bottom:14px;
+  }
+  .dashed{
+    border-top:1px dashed var(--line); margin:14px 0;
+  }
+  .stat-row{ display:flex; justify-content:space-between; font-size:10px; color:var(--text-dim); margin-bottom:6px; }
+  .stat-row b{ color:var(--text); font-weight:400; }
+  .sync-num{
+    font-size:38px; color:var(--mint); margin:6px 0 8px;
+  }
+  .bar{
+    height:2px; background:var(--line-soft); margin-bottom:20px;
+  }
+  .bar-fill{ height:100%; background:var(--mint); width:0%; transition:width 1.6s ease; }
+  .wave{
+    display:flex; align-items:flex-end; gap:2px; height:38px; margin-top:6px;
+  }
+  .wave span{
+    flex:1; background:var(--pink); opacity:0.7;
+    transform-origin: bottom;
+    transition: height 0.05s linear;
+    height: 20%;
+  }
+  .center{ padding:20px; }
+  .center-top{
+    text-align:center; padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid var(--line-soft);
+    font-size:10px; letter-spacing:1px; color:var(--text-faint);
+  }
+  .center-top .status{ color:var(--text-dim); margin-top:6px; }
+  .center-top .none{ margin-top:16px; font-size:9px; letter-spacing:2px; opacity:0.6; }
+  .dc-card{
+    position:relative;
+    border:1px solid var(--line);
+    margin-bottom:26px;
+    background:rgba(0,0,0,0.15);
+    padding-bottom:16px;
+    box-shadow: 0 0 24px rgba(244,134,161,0.18), 0 0 60px rgba(244,134,161,0.06);
+    transition: box-shadow 0.4s ease;
+  }
+  .dc-card:hover{
+    box-shadow: 0 0 32px rgba(244,134,161,0.28), 0 0 80px rgba(244,134,161,0.1);
+  }
+  .dc-banner{
+    width:100%; height:90px;
+    background-color:var(--wine-800, #3a1825);
+    background-size:cover; background-position:center;
+    position: relative;
+    overflow: hidden;
+  }
+  .dc-banner::after{
+    content:"";
+    position:absolute; inset:0;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,180,200,0.15) 50%, transparent 60%);
+    animation: bannerShine 6s ease-in-out infinite;
+  }
+  @keyframes bannerShine{
+    0%,100%{ transform: translateX(-100%); }
+    50%{ transform: translateX(100%); }
+  }
+  .dc-pfp{
+    width:64px; height:64px; border-radius:50%;
+    overflow:hidden;
+    border:4px solid var(--bg-0);
+    background:var(--bg-1);
+    position:absolute; top:60px; left:18px;
+    box-shadow: 0 0 0 2px var(--pink), 0 0 18px rgba(244,134,161,0.55);
+    animation: pfpPulse 3.2s ease-in-out infinite;
+  }
+  @keyframes pfpPulse{
+    0%,100%{ box-shadow: 0 0 0 2px var(--pink), 0 0 18px rgba(244,134,161,0.55); }
+    50%{ box-shadow: 0 0 0 3px var(--pink-bright), 0 0 28px rgba(244,134,161,0.75); }
+  }
+  .dc-pfp img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .dc-body{ padding:32px 18px 4px; }
+  .dc-name{ font-size:13px; letter-spacing:1px; color:var(--text); margin-bottom:6px; }
+  .dc-status{
+    font-size:9px; letter-spacing:1px; color:var(--text-dim);
+    display:flex; align-items:center; gap:6px; margin-bottom:4px;
+  }
+  .dc-status .dot{
+    width:6px; height:6px; border-radius:50%;
+    background:var(--text-faint); flex:none;
+    transition: background 0.3s ease;
+  }
+  .dc-body .none{ font-size:9px; letter-spacing:2px; opacity:0.5; margin-top:8px; }
+  .grid{
+    display:grid; grid-template-columns:repeat(3, 1fr); gap:14px;
+  }
+  .file{
+    border:1px solid var(--line); padding:14px; min-height:80px;
+    transition:border-color 0.2s ease, background 0.2s ease;
+  }
+  .file:hover{ border-color:var(--pink); background:rgba(244,134,161,0.04); }
+  .file .dash{ color:var(--pink); font-size:12px; margin-bottom:6px; }
+  .file .ft{ font-size:11px; letter-spacing:1px; color:var(--text); margin-bottom:6px; }
+  .file .fd{ font-size:9px; color:var(--text-faint); line-height:1.5; }
+  .log{ font-size:9px; color:var(--text-dim); line-height:2; }
+  .log .ln{ opacity:0; animation:appear 0.4s forwards; }
+  @keyframes appear{ to{ opacity:1; } }
+  .log b{ color:var(--gold); }
+  footer{
+    flex:none; border-top:1px solid var(--line); padding:14px 0 10px;
+    text-align:center;
+  }
+  .navlinks{
+    display:flex; justify-content:center; gap:26px; margin-bottom:8px;
+    font-size:11px; letter-spacing:2px; flex-wrap:wrap; padding:0 10px;
+  }
+  .navlinks a{ color:var(--text-dim); transition:color 0.2s ease; }
+  .navlinks a:hover{ color:var(--pink); }
+  .foot-tag{ font-size:10px; letter-spacing:2px; color:var(--pink); margin-bottom:4px; }
+  .foot-sub{ font-size:8px; letter-spacing:1px; color:var(--text-faint); }
+  /* ---------- GLITCH FLASH ---------- */
+  #glitch{
+    position:fixed; inset:0; z-index:40; pointer-events:none;
+    display:flex; align-items:center; justify-content:center;
+    opacity:0;
+  }
+  #glitch span{
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    font-size:min(18vw, 140px);
+    color:var(--mint);
+    letter-spacing:4px;
+    text-shadow:0 0 30px rgba(191,227,208,0.6);
+  }
+  #glitch.flash{ animation:glitchflash 0.35s steps(2,end); }
+  @keyframes glitchflash{
+    0%{ opacity:0; transform:translateX(0); }
+    20%{ opacity:0.85; transform:translateX(-6px); }
+    40%{ opacity:0.2; transform:translateX(5px); }
+    60%{ opacity:0.9; transform:translateX(-3px); }
+    80%{ opacity:0.1; transform:translateX(2px); }
+    100%{ opacity:0; transform:translateX(0); }
+  }
+  /* ---------- MUSIC WIDGET ---------- */
+  #music{
+    position:fixed; right:18px; bottom:18px; z-index:45;
+    display:flex; align-items:center; gap:10px;
+    background:rgba(21,10,16,0.85);
+    border:1px solid var(--line);
+    padding:8px 14px 8px 8px;
+    backdrop-filter:blur(6px);
+  }
+  #music-btn{
+    width:34px; height:34px; flex:none;
+    border:1px solid var(--pink); background:transparent; color:var(--pink);
+    cursor:pointer; font-size:13px;
+    display:flex; align-items:center; justify-content:center;
+    transition:all 0.2s ease;
+  }
+  #music-btn:hover{ background:var(--pink); color:#2a0e1c; }
+  #music-info{ font-size:9px; letter-spacing:1px; color:var(--text-dim); line-height:1.5; }
+  #music-info .tt{ color:var(--text); font-size:10px; }
+  #music-bars{ display:flex; align-items:flex-end; gap:2px; height:14px; margin-left:4px; }
+  #music-bars span{ width:2px; background:var(--pink); animation:wv 1s ease-in-out infinite; opacity:0.5; }
+  #music.playing #music-bars span{ opacity:1; }
+  @keyframes wv{ 0%,100%{ transform:scaleY(0.2);} 50%{ transform:scaleY(1);} }
+  /* ---------- BACKGROUND VIDEO ---------- */
+  #bgvideo{
+    position:fixed; inset:0; z-index:0;
+    width:100%; height:100%; object-fit:cover;
+    opacity:0.32;
+    filter:grayscale(0.35) contrast(1.15) brightness(0.85);
+  }
+  #bgvideo-overlay{
+    position:fixed; inset:0; z-index:1; pointer-events:none;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% 30%, rgba(21,10,16,0.35), rgba(21,10,16,0.85) 75%),
+      linear-gradient(180deg, rgba(21,10,16,0.75), rgba(21,10,16,0.92));
+  }
+  /* ---------- SCANLINES ---------- */
+  #scanlines{
+    position:fixed; inset:0; z-index:6; pointer-events:none;
+    background:repeating-linear-gradient(
+      180deg,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,0.12) 3px,
+      rgba(0,0,0,0) 4px
+    );
+    opacity:0.5;
+    animation:scanmove 9s linear infinite;
+  }
+  @keyframes scanmove{ 0%{ background-position-y:0; } 100%{ background-position-y:200px; } }
+  /* ---------- FOG ---------- */
+  .fog{
+    position:fixed; z-index:2; pointer-events:none;
+    width:70vw; height:70vw; border-radius:50%;
+    filter:blur(60px);
+    opacity:0.16;
+    mix-blend-mode:screen;
+  }
+  #fog1{ background:radial-gradient(circle, var(--pink) 0%, transparent 70%); top:-20%; left:-15%; animation:fogdrift1 32s ease-in-out infinite; }
+  #fog2{ background:radial-gradient(circle, #4a1a2c 0%, transparent 70%); bottom:-25%; right:-15%; animation:fogdrift2 40s ease-in-out infinite; }
+  @keyframes fogdrift1{ 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(8vw,6vh); } }
+  @keyframes fogdrift2{ 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(-6vw,-8vh); } }
+  /* ---------- EMBERS ---------- */
+  .embers{ position:fixed; inset:0; z-index:2; pointer-events:none; overflow:hidden; }
+  .ember{
+    position:absolute; bottom:-5%;
+    width:3px; height:3px; border-radius:50%;
+    background:var(--pink);
+    box-shadow:0 0 6px 1px rgba(244,134,161,0.7);
+    opacity:0;
+    animation:rise linear infinite;
+  }
+  @keyframes rise{
+    0%{ opacity:0; transform:translateY(0) translateX(0); }
+    10%{ opacity:0.8; }
+    90%{ opacity:0.4; }
+    100%{ opacity:0; transform:translateY(-105vh) translateX(20px); }
+  }
+  /* ---------- FLICKER TEXT ---------- */
+  .flicker{ animation:flicker 6s linear infinite; }
+  @keyframes flicker{
+    0%, 3%, 6%, 100%{ opacity:1; }
+    3.5%{ opacity:0.4; }
+    4%{ opacity:0.9; }
+    4.3%{ opacity:0.25; }
+    4.6%{ opacity:1; }
+    62%{ opacity:1; }
+    62.4%{ opacity:0.3; }
+    62.7%{ opacity:1; }
+  }
+  @media (max-width:820px){
+    main{ grid-template-columns:1fr; }
+    aside{ border-right:none; border-bottom:1px solid var(--line); }
+    aside.right{ border-left:none; }
+    .grid{ grid-template-columns:repeat(2,1fr); }
+    .hd-box{ display:none; }
+  }
+</style>
+</head>
+<body>
+<video id="bgvideo" autoplay muted loop playsinline src="bg-video.mp4"></video>
+<div id="bgvideo-overlay"></div>
+<div id="scanlines"></div>
+<div class="fog" id="fog1"></div>
+<div class="fog" id="fog2"></div>
+<div class="embers" id="embers"></div>
+<div id="cursor"></div>
+<div class="crosshair"><div class="v"></div><div class="h"></div></div>
+<div id="glitch"><span id="glitch-text">BLOOM</span></div>
+<div id="music">
+  <button id="music-btn" aria-label="Play song">&#9658;</button>
+  <div id="music-info">
+    <div class="tt">now playing</div>
+    <div>song title &mdash; artist</div>
+  </div>
+  <div id="music-bars"><span></span><span></span><span></span><span></span></div>
+</div>
+<audio id="bgm" src="song.mp3" loop preload="none"></audio>
+<div id="boot">
+  <div class="boot-card">
+    <span class="boot-tag">ID_VERIFICATION_REQUIRED</span>
+    <div class="boot-title flicker">infant richu</div>
+    <div class="boot-tabs"><span>ROSE</span><span>GOLD</span><span>BLOOM</span></div>
+    <div class="boot-sub">PILOT: INFANT_FIRE // NEURAL_LINK: STANDBY</div>
+    <button id="boot-btn">INITIALIZE</button>
+  </div>
+</div>
+<div id="dash">
+  <header>
+    <div class="hd-title flicker">UNIT-01 INFANT_RICHU</div>
+    <div class="hd-box"><span class="k">STATUS</span><span class="v">ONLINE</span></div>
+    <div class="hd-box"><span class="k">PILOT</span><span class="v">INFANT_RICHU</span></div>
+    <div class="hd-box"><span class="k">AURA</span><span class="v">ROSE_GOLD</span></div>
+    <div class="hd-box"><span class="k">ERA</span><span class="v">DREAMCORE</span></div>
+    <div class="hd-clock" id="clock">00:00:00</div>
+  </header>
+  <main>
+    <aside>
+      <div class="lbl">PILOT_DESIGNATION</div>
+      <div class="pilot-name flicker">INFANT_RICHU</div>
+      <div class="dashed"></div>
+      <div class="stat-row"><span>VIBE</span><b>SOFT_GRUNGE</b></div>
+      <div class="stat-row"><span>MOOD</span><b>DREAMY</b></div>
+      <div class="stat-row"><span>SYNC</span><b id="syncval">0%</b></div>
+      <div class="dashed"></div>
+      <div class="lbl">SYNCHRO_RATE</div>
+      <div class="sync-num" id="syncnum">0.0%</div>
+      <div class="bar"><div class="bar-fill" id="barfill"></div></div>
+      <div class="lbl">AUDIO_WAVEFORM</div>
+      <div class="wave" id="wave"></div>
+    </aside>
+    <div class="center">
+      <div class="lbl" style="margin-bottom:10px;">DISCORD_ACTIVITY</div>
+      <div class="dc-card">
+        <div class="dc-banner" style="background-image:url('banner.jpg');"></div>
+        <div class="dc-pfp"><img src="pfp.jpg" alt="pfp"></div>
+        <div class="dc-body">
+          <div class="dc-name">infant_richu</div>
+          <div class="dc-status"><span class="dot" id="dc-dot"></span><span id="dc-status-text">LOADING...</span></div>
+          <div class="none" id="dc-activity">[ CONNECTING ]</div>
+        </div>
+      </div>
+      <div class="lbl" style="margin-bottom:14px;">PERSONAL_FILES</div>
+      <div class="grid">
+        <a class="file" href="https://www.instagram.com/infant_richu" target="_blank" rel="noopener">
+          <div class="dash">&mdash;</div>
+          <div class="ft">INSTAGRAM</div>
+          <div class="fd">@infant_richu &middot; photos &amp; moodboard</div>
+        </a>
+        <a class="file" href="https://www.snapchat.com/@infrichu16" target="_blank" rel="noopener">
+          <div class="dash">&mdash;</div>
+          <div class="ft">SNAPCHAT</div>
+          <div class="fd">infrichu16 &middot; add me</div>
+        </a>
+        <a class="file" href="https://open.spotify.com/user/3164qh4naxkpqhub4yxqpuycylwi" target="_blank" rel="noopener">
+          <div class="dash">&mdash;</div>
+          <div class="ft">SPOTIFY</div>
+          <div class="fd">current rotation &amp; playlists</div>
+        </a>
+        <a class="file" href="https://discord.gg/qrV9Z6ZBs" target="_blank" rel="noopener">
+          <div class="dash">&mdash;</div>
+          <div class="ft">DISCORD</div>
+          <div class="fd">join the community server</div>
+        </a>
+        <a class="file" href="https://www.roblox.com/users/9526501283/profile" target="_blank" rel="noopener">
+          <div class="dash">&mdash;</div>
+          <div class="ft">ROBLOX</div>
+          <div class="fd">profile &amp; game builds</div>
+        </a>
+        <a class="file" href="https://github.com/infantrichu-xo" target="_blank" rel="noopener">
+          <div class="dash">&mdash;</div>
+          <div class="ft">GITHUB</div>
+          <div class="fd">infantrichu-xo &middot; projects</div>
+        </a>
+      </div>
+    </div>
+    <aside class="right">
+      <div class="lbl" style="margin-bottom:10px;">MAGI_LOG_OUTPUT</div>
+      <div class="log" id="log"></div>
+    </aside>
+  </main>
+  <footer>
+    <div class="navlinks">
+      <a href="https://www.instagram.com/infant_richu" target="_blank" rel="noopener">INSTAGRAM</a>
+      <a href="https://www.snapchat.com/@infrichu16" target="_blank" rel="noopener">SNAPCHAT</a>
+      <a href="https://open.spotify.com/user/3164qh4naxkpqhub4yxqpuycylwi" target="_blank" rel="noopener">SPOTIFY</a>
+      <a href="https://discord.gg/qrV9Z6ZBs" target="_blank" rel="noopener">DISCORD</a>
+      <a href="https://www.roblox.com/users/9526501283/profile" target="_blank" rel="noopener">ROBLOX</a>
+      <a href="https://github.com/infantrichu-xo" target="_blank" rel="noopener">GITHUB</a>
+    </div>
+    <div class="foot-tag">UNIT-01</div>
+    <div class="foot-sub">RICHU_STATION_COMMAND // ID: PILOT-01-R16</div>
+  </footer>
+</div>
+<script>
+  var emberWrap = document.getElementById('embers');
+  for(var i=0;i<22;i++){
+    var em = document.createElement('div');
+    em.className = 'ember';
+    em.style.left = Math.random()*100 + 'vw';
+    var size = (2 + Math.random()*3) + 'px';
+    em.style.width = size; em.style.height = size;
+    em.style.animationDuration = (9 + Math.random()*10) + 's';
+    em.style.animationDelay = (Math.random()*12) + 's';
+    emberWrap.appendChild(em);
+  }
+</script>
+<script>
+  var cursor = document.getElementById('cursor');
+  var cx = 0, cy = 0, tx = 0, ty = 0;
+  var dash = document.getElementById('dash');
+  var px = 0, py = 0;
+  document.addEventListener('mousemove', function(e){
+    tx = e.clientX; ty = e.clientY;
+    px = (e.clientX / window.innerWidth - 0.5) * 18;
+    py = (e.clientY / window.innerHeight - 0.5) * 12;
+  });
+  (function loop(){
+    cx += (tx - cx) * 0.35;
+    cy += (ty - cy) * 0.35;
+    cursor.style.left = cx + 'px';
+    cursor.style.top = cy + 'px';
+
+    if(dash.classList.contains('show')){
+      var currentX = parseFloat(dash.dataset.x || 0);
+      var currentY = parseFloat(dash.dataset.y || 0);
+      currentX += (px - currentX) * 0.08;
+      currentY += (py - currentY) * 0.08;
+      dash.dataset.x = currentX;
+      dash.dataset.y = currentY;
+      dash.style.transform = 'translate(' + currentX + 'px,' + currentY + 'px)';
+    }
+    requestAnimationFrame(loop);
+  })();
+  document.addEventListener('mouseover', function(e){
+    if(e.target.closest('a, button')){ cursor.classList.add('hover'); }
+  });
+  document.addEventListener('mouseout', function(e){
+    if(e.target.closest('a, button')){ cursor.classList.remove('hover'); }
+  });
+</script>
+<script>
+  // Audio analyser for real waveform
+  var audioCtx, analyser, dataArray, source;
+  var waveBars = [];
+
+  function setupAudioAnalyser(){
+    if(audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 64;
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+    source = audioCtx.createMediaElementSource(document.getElementById('bgm'));
+    source.connect(analyser);
+    analyser.connect(audioCtx.destination);
+  }
+
+  function updateWave(){
+    if(!analyser || !waveBars.length) {
+      requestAnimationFrame(updateWave);
+      return;
+    }
+    analyser.getByteFrequencyData(dataArray);
+    for(var i=0; i<waveBars.length; i++){
+      var value = dataArray[i] || 0;
+      var h = Math.max(8, (value / 255) * 100);
+      waveBars[i].style.height = h + '%';
+    }
+    requestAnimationFrame(updateWave);
+  }
+
+  // ========== LIVE DISCORD STATUS (Lanyard) ==========
+  var DISCORD_ID = '1420107675148091573';
+
+  function updateDiscordStatus(){
+    fetch('https://api.lanyard.rest/v1/users/' + DISCORD_ID)
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        if(!res.success){
+          setDiscordFallback();
+          return;
+        }
+        var data = res.data;
+        var status = data.discord_status; // online, idle, dnd, offline
+        var dot = document.getElementById('dc-dot');
+        var statusText = document.getElementById('dc-status-text');
+        var activityEl = document.getElementById('dc-activity');
+
+        // status colors
+        var colors = {
+          online: '#43b581',
+          idle: '#faa61a',
+          dnd: '#f04747',
+          offline: '#747f8d'
+        };
+        var labels = {
+          online: 'ONLINE',
+          idle: 'IDLE',
+          dnd: 'DO NOT DISTURB',
+          offline: 'OFFLINE'
+        };
+
+        dot.style.background = colors[status] || colors.offline;
+        statusText.textContent = labels[status] || 'OFFLINE';
+
+        // activity
+        var activities = data.activities || [];
+        var custom = activities.find(function(a){ return a.type === 4; }); // custom status
+        var playing = activities.find(function(a){ return a.type === 0; }); // playing
+        var listening = activities.find(function(a){ return a.type === 2; }); // listening (spotify etc)
+        var watching = activities.find(function(a){ return a.type === 3; });
+
+        if(data.listening_to_spotify && data.spotify){
+          activityEl.textContent = 'LISTENING TO ' + data.spotify.song + ' — ' + data.spotify.artist;
+          activityEl.style.opacity = '0.9';
+        } else if(playing){
+          activityEl.textContent = 'PLAYING ' + (playing.name || 'Something');
+          activityEl.style.opacity = '0.9';
+        } else if(watching){
+          activityEl.textContent = 'WATCHING ' + (watching.name || 'Something');
+          activityEl.style.opacity = '0.9';
+        } else if(custom && custom.state){
+          activityEl.textContent = custom.state;
+          activityEl.style.opacity = '0.9';
+        } else {
+          activityEl.textContent = '[ NO ACTIVE SESSIONS ]';
+          activityEl.style.opacity = '0.5';
+        }
+      })
+      .catch(function(){
+        setDiscordFallback();
+      });
+  }
+
+  function setDiscordFallback(){
+    document.getElementById('dc-dot').style.background = '#747f8d';
+    document.getElementById('dc-status-text').textContent = 'OFFLINE';
+    document.getElementById('dc-activity').textContent = '[ NO ACTIVE SESSIONS ]';
+    document.getElementById('dc-activity').style.opacity = '0.5';
+  }
+
+  document.getElementById('boot-btn').addEventListener('click', function(){
+    var boot = document.getElementById('boot');
+    boot.style.opacity = '0';
+    setTimeout(function(){
+      boot.style.display = 'none';
+      var dash = document.getElementById('dash');
+      dash.classList.add('show');
+      startDash();
+
+      // live discord
+      updateDiscordStatus();
+      setInterval(updateDiscordStatus, 12000);
+
+      // auto-play music after initialize
+      var bgm = document.getElementById('bgm');
+      var musicBtn = document.getElementById('music-btn');
+      var musicWidget = document.getElementById('music');
+      setupAudioAnalyser();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      bgm.play().then(function(){
+        musicBtn.innerHTML = '&#10074;&#10074;';
+        musicWidget.classList.add('playing');
+        updateWave();
+      }).catch(function(){});
+    }, 600);
+  });
+
+  function startDash(){
+    function tick(){
+      var d = new Date();
+      var s = [d.getHours(), d.getMinutes(), d.getSeconds()].map(function(n){ return String(n).padStart(2,'0'); }).join(':');
+      document.getElementById('clock').textContent = s;
+    }
+    tick(); setInterval(tick, 1000);
+    var target = 87;
+    var val = 0;
+    var syncnum = document.getElementById('syncnum');
+    var syncval = document.getElementById('syncval');
+    var barfill = document.getElementById('barfill');
+    barfill.style.width = target + '%';
+    var iv = setInterval(function(){
+      val += 2;
+      if(val >= target){
+        val = target;
+        clearInterval(iv);
+        armCursorSync();
+      }
+      syncnum.textContent = val.toFixed(1) + '%';
+      syncval.textContent = val + '%';
+    }, 40);
+    function armCursorSync(){
+      var lastGlitch = 0;
+      document.addEventListener('mousemove', function(e){
+        var pct = Math.max(0, Math.min(100, (e.clientX / window.innerWidth) * 100));
+        syncnum.textContent = pct.toFixed(1) + '%';
+        syncval.textContent = Math.round(pct) + '%';
+        barfill.style.width = pct + '%';
+        var edge = Math.max(60, window.innerWidth * 0.08);
+        var now = Date.now();
+        if((e.clientX < edge || e.clientX > window.innerWidth - edge) && now - lastGlitch > 1200){
+          lastGlitch = now;
+          fireGlitch();
+        }
+      });
+    }
+    var wave = document.getElementById('wave');
+    wave.innerHTML = '';
+    waveBars = [];
+    for(var i=0;i<28;i++){
+      var bar = document.createElement('span');
+      wave.appendChild(bar);
+      waveBars.push(bar);
+    }
+    var lines = [
+      'CORE_LINK ... [OK]',
+      'UPLINK_ESTABLISHED ... [OK]',
+      'PILOT_SCAN ... [PASS]',
+      'AURA_FIELD ... [ACTIVE]',
+      'PLAYLIST_SYNC ... [DONE]',
+      'MOODBOARD_LOAD ... [OK]',
+      'SYSTEM_READY ... [OK]'
+    ];
+    var log = document.getElementById('log');
+    lines.forEach(function(t, i){
+      var el = document.createElement('div');
+      el.className = 'ln';
+      el.style.animationDelay = (i*0.35) + 's';
+      el.innerHTML = '&gt; ' + t.replace('[', '<b>[').replace(']', ']</b>');
+      log.appendChild(el);
+    });
+    var glitchWords = ['♱', 'SLAY', 'OOPS!', '死神', '\u85d9\u8587'];
+    var glitchEl = document.getElementById('glitch');
+    var glitchText = document.getElementById('glitch-text');
+    window.fireGlitch = function(){
+      glitchText.textContent = glitchWords[Math.floor(Math.random()*glitchWords.length)];
+      glitchEl.classList.remove('flash');
+      void glitchEl.offsetWidth;
+      glitchEl.classList.add('flash');
+    };
+  }
+  // music widget
+  var bgm = document.getElementById('bgm');
+  var musicBtn = document.getElementById('music-btn');
+  var musicWidget = document.getElementById('music');
+  musicBtn.addEventListener('click', function(){
+    if(bgm.paused){
+      setupAudioAnalyser();
+      if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      bgm.play().catch(function(){
+        musicBtn.textContent = '\u25B6';
+      });
+      musicBtn.innerHTML = '&#10074;&#10074;';
+      musicWidget.classList.add('playing');
+      updateWave();
+    } else {
+      bgm.pause();
+      musicBtn.textContent = '\u25B6';
+      musicWidget.classList.remove('playing');
+    }
+  });
+</script>
+</body>
+</html>
