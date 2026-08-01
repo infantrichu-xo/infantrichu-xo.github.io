@@ -753,7 +753,7 @@
       el.innerHTML = '&gt; ' + t.replace('[', '<b>[').replace(']', ']</b>');
       log.appendChild(el);
     });
-    var glitchWords = ['♱', 'SLAY', 'OOPS!', '死神', '\u85d9\u8587'];
+    var glitchWords = ['♰', 'SLAY', 'OOPS!', '死神', '\u85d9\u8587'];
     var glitchEl = document.getElementById('glitch');
     var glitchText = document.getElementById('glitch-text');
     window.fireGlitch = function(){
@@ -770,7 +770,7 @@
   musicBtn.addEventListener('click', function(){
     if(bgm.paused){
       setupAudioAnalyser();
-      if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); 
       bgm.play().catch(function(){
         musicBtn.textContent = '\u25B6';
       });
